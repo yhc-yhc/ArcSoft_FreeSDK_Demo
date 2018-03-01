@@ -24,6 +24,7 @@ if (process.arch == 'x64') {
     MIntPtr_t = ref.types.uint32;
 }
 var MPChar = ref.types.CString;
+// var MHandleType = ref.refType(ref.types.void);
 var MHandleType = ref.refType(ref.types.void);
 var MHandleRefType = ref.refType(MHandleType);
 var MUInt8RefType = ref.refType(ref.types.uint8);

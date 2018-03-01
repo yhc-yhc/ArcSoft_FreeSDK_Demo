@@ -13,9 +13,9 @@ var ArcSoftFD = require('./ArcSoftFD.js');
 var ArcSoftFR = require('./ArcSoftFR.js');
 var ArcSoftBase = require('./ArcSoftBase.js');
 
-var APPID  = 'XXXXXXXXXX';
-var FD_SDKKEY = 'YYYYYYYYYY';
-var FR_SDKKEY = 'ZZZZZZZZZZ';
+var APPID  = '5Q3UUrYv2T1qAXtsdGFJXaTMjHdgvUpiktzxLhZLcYC1';
+var FD_SDKKEY = 'DcHzisteEJPMcDM9ZtPkRGbuvA9FJRUuqvaQNjCBucer';
+var FR_SDKKEY = 'DcHzisteEJPMcDM9ZtPkRGc35ZQS8XUwaVtYQ4mCuyT6';
 
 //init Engine
 var MAX_FACE_NUM = 50;
@@ -192,6 +192,7 @@ http.createServer(function(request, response) {
                     response.writeHead(200, {
                         'Content-Type': 'application/json'
                     });
+                    console.log(195, faces)
                     response.write(JSON.stringify(faces));
                     response.end();
                 });
@@ -226,6 +227,7 @@ http.createServer(function(request, response) {
                         response.writeHead(200, {
                             'Content-Type': 'application/json'
                         });
+                        console.log(fr_result);
                         response.write(JSON.stringify(fr_result));
                         response.end();
                     }, frImageData.leftIndex, frImageData.rightIndex);

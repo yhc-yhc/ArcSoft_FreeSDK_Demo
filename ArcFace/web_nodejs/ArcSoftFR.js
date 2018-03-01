@@ -1,6 +1,7 @@
 "use strict";
 var StructType = require('ref-struct');
 var ArrayType = require('ref-array');
+// var Union = require('ref-union')
 var ref = require('ref');
 var ffi = require('ffi');
 var base = require('./ArcSoftBase.js');
@@ -26,6 +27,11 @@ var AFR_FSDK_FACEMODEL = StructType({
     lFeatureSize: base.MInt32
 });
 
+// var AFR_FSDK_FACEMODEL = StructType({
+//     pbFeature: ref.types.void,
+//     lFeatureSize: base.MInt32
+// });
+
 var libname = process.platform == 'win32' ? './libarcsoft_fsdk_face_recognition.dll' : './libarcsoft_fsdk_face_recognition.so'
 var Library = ffi.Library(libname, {
     'AFR_FSDK_GetVersion': [ref.refType(AFR_FSDK_Version), [base.MHandleType]],
@@ -46,21 +52,36 @@ function extractFeature(hEngine, asvl, face) {
     var faceFeature = new AFR_FSDK_FACEMODEL();
     faceFeature.lFeatureSize = 0;
     faceFeature.pbFeature = ref.NULL;
+    // console.log(49, faceFeature, faceFeature.pbFeature.toString('Base64'), faceFeature['ref.buffer'].toString('Base64'))
     //console.log(asvl);
     var ret = Library.AFR_FSDK_ExtractFRFeature(hEngine, asvl.ref(), faceRes.ref(), faceFeature.ref());
+    // console.log(52, faceFeature.pbFeature.toString('base64'), faceFeature.lFeatureSize)
+
     if (ret != 0) {
         console.log('AFR_FSDK_ExtractFRFeature ret == ' + ret);
         faceFeature.lFeatureSize = 0;
         faceFeature.pbFeature = ref.NULL;
         return faceFeature;
     } else {
+        // return faceFeature;
         var faceFeatureCopy = new AFR_FSDK_FACEMODEL();
         faceFeatureCopy.lFeatureSize = faceFeature.lFeatureSize;
-        faceFeatureCopy.pbFeature = base.malloc(faceFeatureCopy.lFeatureSize);
-        base.memcpy(faceFeatureCopy.pbFeature.address(),
+        // faceFeatureCopy.pbFeature = base.malloc(faceFeatureCopy.lFeatureSize);
+        // base.memcpy(faceFeatureCopy.pbFeature.address(),
+        //     faceFeature.pbFeature.address(),
+        //     faceFeatureCopy.lFeatureSize);
+        // return faceFeatureCopy;
+
+        var buf = new Buffer(faceFeature.lFeatureSize);
+        // console.log('buffer address is: ', buf.address())
+        base.memcpy(buf.address(),
             faceFeature.pbFeature.address(),
             faceFeatureCopy.lFeatureSize);
-        return faceFeatureCopy;
+        // buf.type = ref.types.uint8;
+        // console.log(buf.toString('binary'), buf.length)
+        faceFeatureCopy.pbFeature = buf
+        // return faceFeatureCopy
+        return buf
     }
 }
 
@@ -68,6 +89,30 @@ function compareFaceSimilarity(hEngine, faceFeatureA, faceFeatureB) {
     var pfSimilScore = new Buffer(ref.sizeof.float);
     pfSimilScore.type = ref.refType(ref.types.float);
     pfSimilScore.writeFloatLE(0, 0.0);
+    var ret = Library.AFR_FSDK_FacePairMatching(hEngine, faceFeatureA.ref(), faceFeatureB.ref(), pfSimilScore);
+    if (ret != 0) {
+        console.log('AFR_FSDK_FacePairMatching failed:ret == ' + ret);
+        return 0.0;
+    }
+    return pfSimilScore.readFloatLE(0);
+}
+
+function compareFaceFromBase64(hEngine, base64A, base64B) {
+    var pfSimilScore = new Buffer(ref.sizeof.float);
+    pfSimilScore.type = ref.refType(ref.types.float);
+    pfSimilScore.writeFloatLE(0, 0.0);
+
+    var faceFeatureA = new AFR_FSDK_FACEMODEL();
+    var bufferA = new Buffer(base64A, 'base64')
+    faceFeatureA.lFeatureSize = bufferA.length;
+    faceFeatureA.pbFeature = bufferA;
+
+    var faceFeatureB = new AFR_FSDK_FACEMODEL();
+    var bufferB = new Buffer(base64B, 'base64')
+    faceFeatureB.lFeatureSize = bufferB.length;
+    faceFeatureB.pbFeature = bufferB;
+
+    console.log(1)
     var ret = Library.AFR_FSDK_FacePairMatching(hEngine, faceFeatureA.ref(), faceFeatureB.ref(), pfSimilScore);
     if (ret != 0) {
         console.log('AFR_FSDK_FacePairMatching failed:ret == ' + ret);
@@ -86,3 +131,4 @@ exports.AFR_FSDK_ExtractFRFeature = Library.AFR_FSDK_ExtractFRFeature;
 exports.AFR_FSDK_FacePairMatching = Library.AFR_FSDK_FacePairMatching;
 exports.extractFeature = extractFeature;
 exports.compareFaceSimilarity = compareFaceSimilarity;
+exports.compareFaceFromBase64 = compareFaceFromBase64;
